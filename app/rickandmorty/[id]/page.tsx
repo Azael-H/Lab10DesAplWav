@@ -36,24 +36,29 @@ async function getCharacter(id: string): Promise<Character> {
 
 export async function generateStaticParams() {
   // SSG: genera rutas estáticas para todos los personajes (fetch secuencial)
-  const firstRes = await fetch("https://rickandmortyapi.com/api/character");
-  if (!firstRes.ok) return [];
-  const firstData: CharacterListResponse = await firstRes.json();
-  const totalPages = firstData.info.pages;
+  try {
+    const firstRes = await fetch("https://rickandmortyapi.com/api/character");
+    if (!firstRes.ok) return [];
+    const firstData: CharacterListResponse = await firstRes.json();
+    const totalPages = firstData.info.pages;
 
-  let allCharacters = [...firstData.results];
+    let allCharacters = [...firstData.results];
 
-  // Fetch secuencial para no saturar la API durante el build
-  for (let page = 2; page <= totalPages; page++) {
-    const res = await fetch(
-      `https://rickandmortyapi.com/api/character?page=${page}`
-    );
-    if (!res.ok) break;
-    const data: CharacterListResponse = await res.json();
-    allCharacters = [...allCharacters, ...data.results];
+    // Fetch secuencial para no saturar la API durante el build
+    for (let page = 2; page <= totalPages; page++) {
+      const res = await fetch(
+        `https://rickandmortyapi.com/api/character?page=${page}`
+      );
+      if (!res.ok) break;
+      const data: CharacterListResponse = await res.json();
+      allCharacters = [...allCharacters, ...data.results];
+    }
+
+    return allCharacters.map((c) => ({ id: String(c.id) }));
+  } catch {
+    // Si falla, Next.js generará las páginas on-demand con ISR
+    return [];
   }
-
-  return allCharacters.map((c) => ({ id: String(c.id) }));
 }
 
 export async function generateMetadata({
